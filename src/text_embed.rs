@@ -50,7 +50,7 @@ use tokenizers::{
 mod stderr_suppress {
     use std::fs::File;
     use std::io;
-    use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
+    use std::os::unix::io::{AsRawFd, RawFd};
 
     pub struct StderrSuppressor {
         original_stderr: RawFd,
