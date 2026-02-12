@@ -286,14 +286,19 @@ impl Parser {
             if self.check(TokenKind::Or) || self.check(TokenKind::RParen) || self.is_end() {
                 break;
             }
-            // Implicit word separation (no explicit AND/OR) defaults to AND for precision
+            // Implicit word separation (no explicit AND/OR) defaults to OR for recall.
+            // Standard BM25 implementations (Lucene, Elasticsearch, Tantivy) use OR by
+            // default — documents matching more terms rank higher but matching all terms
+            // is not required. This is critical for documentation search where content is
+            // split into small chunks and multi-term queries (5+ words) frequently fail
+            // under AND logic because all terms rarely co-occur in a single chunk.
             let rhs = self.parse_factor()?;
             expr = match expr {
-                Expr::And(mut list) => {
+                Expr::Or(mut list) => {
                     list.push(rhs);
-                    Expr::And(list)
+                    Expr::Or(list)
                 }
-                _ => Expr::And(vec![expr, rhs]),
+                _ => Expr::Or(vec![expr, rhs]),
             };
         }
         Ok(expr)
@@ -601,28 +606,29 @@ mod tests {
         }
     }
 
-    // Tests for implicit AND operator behavior
-    // These tests verify the fix that changes implicit multi-word queries
-    // from OR to AND for better precision
+    // Tests for implicit OR operator behavior
+    // These tests verify that implicit multi-word queries use OR logic for recall.
+    // Standard BM25 implementations default to OR — documents matching more terms
+    // rank higher but matching all terms is not required.
     #[test]
-    fn implicit_and_behavior() {
+    fn implicit_or_behavior() {
         let result = parse_query("machine learning").expect("parse");
         match result.expr {
-            Expr::And(children) => {
-                assert_eq!(children.len(), 2, "Should have 2 AND terms");
+            Expr::Or(children) => {
+                assert_eq!(children.len(), 2, "Should have 2 OR terms");
             }
-            _ => panic!("Expected Expr::And, got {:?}", result.expr),
+            _ => panic!("Expected Expr::Or, got {:?}", result.expr),
         }
     }
 
     #[test]
-    fn implicit_and_three_words() {
+    fn implicit_or_three_words() {
         let result = parse_query("machine learning python").expect("parse");
         match result.expr {
-            Expr::And(children) => {
-                assert_eq!(children.len(), 3, "Should have 3 AND terms");
+            Expr::Or(children) => {
+                assert_eq!(children.len(), 3, "Should have 3 OR terms");
             }
-            _ => panic!("Expected Expr::And with 3 children"),
+            _ => panic!("Expected Expr::Or with 3 children"),
         }
     }
 
@@ -650,77 +656,66 @@ mod tests {
 
     #[test]
     fn mixed_explicit_and_implicit() {
+        // "machine learning OR python" -> OR([machine, learning, python])
+        // Since implicit is now OR, all three terms are flattened into one OR
         let result = parse_query("machine learning OR python").expect("parse");
         match result.expr {
             Expr::Or(children) => {
-                assert_eq!(children.len(), 2, "Should have 2 OR branches");
-                match &children[0] {
-                    Expr::And(and_children) => {
-                        assert_eq!(
-                            and_children.len(),
-                            2,
-                            "First branch should have 2 AND terms"
-                        );
-                    }
-                    _ => panic!("First OR branch should be AND"),
-                }
+                assert_eq!(children.len(), 3, "Should have 3 OR terms (flattened)");
             }
             _ => panic!("Expected Expr::Or at top level"),
         }
     }
 
     #[test]
-    fn phrase_and_word_implicit_and() {
+    fn phrase_and_word_implicit_or() {
         let result = parse_query("\"machine learning\" python").expect("parse");
         match result.expr {
-            Expr::And(children) => {
-                assert_eq!(children.len(), 2, "Should have 2 AND terms");
+            Expr::Or(children) => {
+                assert_eq!(children.len(), 2, "Should have 2 OR terms");
             }
-            _ => panic!("Expected Expr::And"),
+            _ => panic!("Expected Expr::Or"),
         }
     }
 
     #[test]
-    fn field_and_word_implicit_and() {
+    fn field_and_word_implicit_or() {
         let result = parse_query("tag:important urgent").expect("parse");
         match result.expr {
-            Expr::And(children) => {
-                assert_eq!(children.len(), 2, "Should have 2 AND terms");
+            Expr::Or(children) => {
+                assert_eq!(children.len(), 2, "Should have 2 OR terms");
             }
-            _ => panic!("Expected Expr::And"),
+            _ => panic!("Expected Expr::Or"),
         }
     }
 
     #[test]
-    fn parentheses_preserve_implicit_and() {
-        // (machine learning) python actually flattens to And([machine, learning, python])
-        // This is correct optimizer behavior
+    fn parentheses_preserve_implicit_or() {
+        // (machine learning) python flattens to Or([machine, learning, python])
         let result = parse_query("(machine learning) python").expect("parse");
         match result.expr {
-            Expr::And(children) => {
-                // The parser flattens nested ANDs for efficiency
-                assert_eq!(children.len(), 3, "Should have 3 AND terms (flattened)");
+            Expr::Or(children) => {
+                assert_eq!(children.len(), 3, "Should have 3 OR terms (flattened)");
             }
-            _ => panic!("Expected Expr::And"),
+            _ => panic!("Expected Expr::Or"),
         }
     }
 
     #[test]
-    fn parentheses_with_different_operators() {
-        // Test that parentheses work when needed: (machine OR learning) AND python
-        let result = parse_query("(machine OR learning) python").expect("parse");
+    fn parentheses_with_explicit_and() {
+        // (machine AND learning) python -> OR([AND([machine, learning]), python])
+        let result = parse_query("(machine AND learning) python").expect("parse");
         match result.expr {
-            Expr::And(children) => {
-                assert_eq!(children.len(), 2, "Should have 2 AND terms");
-                // First child is OR expression
+            Expr::Or(children) => {
+                assert_eq!(children.len(), 2, "Should have 2 OR terms");
                 match &children[0] {
-                    Expr::Or(or_children) => {
-                        assert_eq!(or_children.len(), 2, "OR should have 2 terms");
+                    Expr::And(and_children) => {
+                        assert_eq!(and_children.len(), 2, "AND should have 2 terms");
                     }
-                    _ => panic!("First child should be OR"),
+                    _ => panic!("First child should be AND"),
                 }
             }
-            _ => panic!("Expected Expr::And at top level"),
+            _ => panic!("Expected Expr::Or at top level"),
         }
     }
 }
