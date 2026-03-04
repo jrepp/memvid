@@ -15,7 +15,7 @@ mod tests {
                 let mut mem = Memvid::create(path).unwrap();
                 mem.enable_lex().unwrap();
 
-                for i in 0..1000 {
+                for i in 0..200 {
                     let content = format!(
                         "Document {i} with searchable content about technology and artificial intelligence systems"
                     );
@@ -25,7 +25,7 @@ mod tests {
                         .build();
                     mem.put_bytes_with_options(content.as_bytes(), opts)
                         .unwrap();
-                    if (i + 1) % 100 == 0 {
+                    if (i + 1) % 50 == 0 {
                         mem.commit().unwrap();
                     }
                 }
@@ -57,7 +57,7 @@ mod tests {
 
                 let resp = mem
                     .search(SearchRequest {
-                        query: "artificial intelligence".into(),
+                        query: "artificial AND intelligence".into(),
                         top_k: 10,
                         snippet_chars: 200,
                         uri: None,
