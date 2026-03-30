@@ -1,6 +1,6 @@
-# CLAUDE.md
+# memvid Agent Guide
 
-This file provides guidance to Claude Code and other AI assistants working with this repository.
+This file provides guidance to AI assistants working with this repository.
 
 ## Project Overview
 
