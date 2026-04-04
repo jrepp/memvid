@@ -20,6 +20,28 @@ use crate::types::{EntityKind, FrameId};
 use crate::{MemvidError, Result};
 use std::path::{Path, PathBuf};
 
+#[cfg(feature = "logic_mesh")]
+/// Build a diagnostics hint for ONNX Runtime dynamic library loading.
+fn onnx_runtime_dynamic_load_hint(feature: &str) -> String {
+    format!(
+        "{}\nThis build uses dynamic ONNX Runtime loading (ort load-dynamic).\
+Ensure the ONNX Runtime shared library is available to the process at runtime\
+for the {} feature and that its major version is compatible.\
+\
+Set `ORT_LIB_LOCATION` to the directory containing `libonnxruntime` (for example:\
+`libonnxruntime.so`, `libonnxruntime.dylib`, or `onnxruntime.dll`).\
+If using system defaults, add the library location to your native\
+loader path (`LD_LIBRARY_PATH`, `DYLD_LIBRARY_PATH`, or `PATH`).",
+        feature, feature,
+    )
+}
+
+#[cfg(feature = "logic_mesh")]
+/// Wrap an ONNX Runtime error with the dynamic-load diagnostics hint.
+fn format_onnx_runtime_error(feature: &str, message: impl core::fmt::Display) -> String {
+    format!("{}\n{}", message, onnx_runtime_dynamic_load_hint(feature))
+}
+
 // ============================================================================
 // Configuration Constants
 // ============================================================================
@@ -150,7 +172,7 @@ pub use model_impl::*;
 #[cfg(feature = "logic_mesh")]
 mod model_impl {
     use super::*;
-    use ort::session::{Session, builder::GraphOptimizationLevel};
+    use ort::session::{builder::GraphOptimizationLevel, Session};
     use ort::value::Tensor;
     use std::sync::Mutex;
     use tokenizers::{
@@ -217,19 +239,35 @@ mod model_impl {
             // Initialize ONNX Runtime
             let session = Session::builder()
                 .map_err(|e| MemvidError::NerModelNotAvailable {
-                    reason: format!("failed to create session builder: {}", e).into(),
+                    reason: format_onnx_runtime_error(
+                        "NER",
+                        format!("failed to create session builder: {}", e),
+                    )
+                    .into(),
                 })?
                 .with_optimization_level(GraphOptimizationLevel::Level3)
                 .map_err(|e| MemvidError::NerModelNotAvailable {
-                    reason: format!("failed to set optimization level: {}", e).into(),
+                    reason: format_onnx_runtime_error(
+                        "NER",
+                        format!("failed to set optimization level: {}", e),
+                    )
+                    .into(),
                 })?
                 .with_intra_threads(4)
                 .map_err(|e| MemvidError::NerModelNotAvailable {
-                    reason: format!("failed to set threads: {}", e).into(),
+                    reason: format_onnx_runtime_error(
+                        "NER",
+                        format!("failed to set threads: {}", e),
+                    )
+                    .into(),
                 })?
                 .commit_from_file(&model_path)
                 .map_err(|e| MemvidError::NerModelNotAvailable {
-                    reason: format!("failed to load model from {:?}: {}", model_path, e).into(),
+                    reason: format_onnx_runtime_error(
+                        "NER",
+                        format!("failed to load model from {:?}: {}", model_path, e),
+                    )
+                    .into(),
                 })?;
 
             tracing::info!(
@@ -645,5 +683,15 @@ mod tests {
         assert_eq!(NER_LABELS[3], "B-ORG");
         assert_eq!(NER_LABELS[5], "B-LOC");
         assert_eq!(NER_LABELS[7], "B-MISC");
+    }
+
+    #[cfg(feature = "logic_mesh")]
+    #[test]
+    fn test_onnx_runtime_error_hint_includes_guidance() {
+        let hint = format_onnx_runtime_error("NER", "simulated failure");
+
+        assert!(hint.contains("simulated failure"));
+        assert!(hint.contains("ORT_LIB_LOCATION"));
+        assert!(hint.contains("dynamic ONNX Runtime"));
     }
 }

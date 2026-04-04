@@ -39,6 +39,27 @@ use tokenizers::{
     PaddingDirection, PaddingParams, PaddingStrategy, TruncationDirection, TruncationStrategy,
 };
 
+/// Build a diagnostics hint for ONNX Runtime dynamic library loading.
+fn onnx_runtime_dynamic_load_hint(feature: &str) -> String {
+    format!(
+        "{}\n\
+This build uses dynamic ONNX Runtime loading (ort load-dynamic).\
+Ensure the ONNX Runtime shared library is available to the process at runtime\
+for the {} feature and that its major version is compatible.\
+\
+Set `ORT_LIB_LOCATION` to the directory containing `libonnxruntime` (for example:\
+`libonnxruntime.so`, `libonnxruntime.dylib`, or `onnxruntime.dll`).\
+If using system defaults, add the library location to your native\
+loader path (`LD_LIBRARY_PATH`, `DYLD_LIBRARY_PATH`, or `PATH`).",
+        feature, feature,
+    )
+}
+
+/// Wrap an ONNX Runtime error with the dynamic-load diagnostics hint.
+fn format_onnx_runtime_error(feature: &str, message: impl core::fmt::Display) -> String {
+    format!("{}\n{}", message, onnx_runtime_dynamic_load_hint(feature))
+}
+
 // ============================================================================
 // Stderr Suppression for macOS
 // ============================================================================
@@ -526,19 +547,39 @@ impl LocalTextEmbedder {
 
         let session = Session::builder()
             .map_err(|e| MemvidError::EmbeddingFailed {
-                reason: format!("Failed to create session builder: {}", e).into(),
+                reason: format_onnx_runtime_error(
+                    "text embeddings",
+                    format!("Failed to create session builder: {}", e),
+                )
+                .into(),
             })?
             .with_optimization_level(GraphOptimizationLevel::Level3)
             .map_err(|e| MemvidError::EmbeddingFailed {
-                reason: format!("Failed to set optimization level: {}", e).into(),
+                reason: format_onnx_runtime_error(
+                    "text embeddings",
+                    format!("Failed to set optimization level: {}", e),
+                )
+                .into(),
             })?
             .with_intra_threads(4)
             .map_err(|e| MemvidError::EmbeddingFailed {
-                reason: format!("Failed to set intra threads: {}", e).into(),
+                reason: format_onnx_runtime_error(
+                    "text embeddings",
+                    format!("Failed to set intra threads: {}", e),
+                )
+                .into(),
             })?
             .commit_from_file(&model_path)
             .map_err(|e| MemvidError::EmbeddingFailed {
-                reason: format!("Failed to load text embedding model: {}", e).into(),
+                reason: format_onnx_runtime_error(
+                    "text embeddings",
+                    format!(
+                        "Failed to load text embedding model from {}: {}",
+                        model_path.display(),
+                        e
+                    ),
+                )
+                .into(),
             })?;
 
         // _stderr_guard is dropped here, restoring stderr
@@ -1145,6 +1186,15 @@ mod tests {
         // Different text should (very likely) produce different key
         let key3 = LocalTextEmbedder::cache_key("goodbye world");
         assert_ne!(key1, key3);
+    }
+
+    #[test]
+    fn test_onnx_runtime_error_hint_includes_guidance() {
+        let hint = format_onnx_runtime_error("text embeddings", "simulated failure");
+
+        assert!(hint.contains("simulated failure"));
+        assert!(hint.contains("ORT_LIB_LOCATION"));
+        assert!(hint.contains("text embeddings"));
     }
 
     #[test]

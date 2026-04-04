@@ -151,6 +151,7 @@ memvid-core = "2.0"
 | `lex`               | Full-text search with BM25 ranking (Tantivy)                     |
 | `pdf_extract`       | Pure Rust PDF text extraction                                    |
 | `vec`               | Vector similarity search (HNSW + local text embeddings via ONNX) |
+| `logic_mesh`        | Named entity extraction (NER) via local ONNX runtime model        |
 | `clip`              | CLIP visual embeddings for image search                          |
 | `whisper`           | Audio transcription with Whisper                                 |
 | `api_embed`         | Cloud API embeddings (OpenAI)                                    |
@@ -165,6 +166,36 @@ Enable features as needed:
 [dependencies]
 memvid-core = { version = "2.0", features = ["lex", "vec", "temporal_track"] }
 ```
+
+## ONNX Runtime Dynamic Loading (vec + logic_mesh)
+
+The `vec` and `logic_mesh` features compile `ort` with `default-features = false` and
+`features = ["load-dynamic"]`. This means ONNX Runtime shared libraries are not bundled and
+must be available on the host at runtime.
+
+If you are seeing model-load failures, verify:
+
+1. A compatible ONNX Runtime runtime is installed.
+2. Runtime library path is visible to your process.
+3. `ORT_LIB_LOCATION` points at the directory containing the runtime binary.
+
+### Linux / macOS
+
+```bash
+export ORT_LIB_LOCATION="/path/to/onnxruntime/lib"
+export LD_LIBRARY_PATH="$ORT_LIB_LOCATION:$LD_LIBRARY_PATH"      # Linux
+export DYLD_LIBRARY_PATH="$ORT_LIB_LOCATION:$DYLD_LIBRARY_PATH" # macOS
+```
+
+### Windows
+
+```powershell
+$env:ORT_LIB_LOCATION = "C:\path\to\onnxruntime\lib"
+$env:PATH = "$env:ORT_LIB_LOCATION;$env:PATH"
+```
+
+If `ORT_LIB_LOCATION` points to a file instead of a directory, runtime loading will fail before
+model loading/inference. The embedder and NER errors now include this guidance automatically.
 
 
 ## Quick Start
