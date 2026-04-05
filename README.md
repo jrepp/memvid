@@ -197,6 +197,18 @@ $env:PATH = "$env:ORT_LIB_LOCATION;$env:PATH"
 If `ORT_LIB_LOCATION` points to a file instead of a directory, runtime loading will fail before
 model loading/inference. The embedder and NER errors now include this guidance automatically.
 
+### Quick validation (vec + logic_mesh)
+
+Run these targeted tests to validate dynamic-loading diagnostics and preflight checks:
+
+```bash
+cargo test --features "vec logic_mesh" test_onnx_runtime_error_hint_includes_guidance
+cargo test --features "vec logic_mesh" test_ort_lib_location_file_path_fails_preflight
+```
+
+The second test intentionally sets `ORT_LIB_LOCATION` to a file path and verifies that memvid
+fails fast with a clear error before ONNX model/session loading starts.
+
 
 ## Quick Start
 

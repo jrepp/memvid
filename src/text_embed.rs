@@ -26,7 +26,7 @@
 use crate::types::embedding::EmbeddingProvider;
 use crate::{MemvidError, Result};
 use ndarray::Array;
-use ort::session::{Session, builder::GraphOptimizationLevel};
+use ort::session::{builder::GraphOptimizationLevel, Session};
 use ort::value::Tensor;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::{HashMap, VecDeque};
@@ -58,6 +58,34 @@ loader path (`LD_LIBRARY_PATH`, `DYLD_LIBRARY_PATH`, or `PATH`).",
 /// Wrap an ONNX Runtime error with the dynamic-load diagnostics hint.
 fn format_onnx_runtime_error(feature: &str, message: impl core::fmt::Display) -> String {
     format!("{}\n{}", message, onnx_runtime_dynamic_load_hint(feature))
+}
+
+/// Validate `ORT_LIB_LOCATION` when configured.
+///
+/// Dynamic loading supports default native loader paths when this variable is unset.
+/// When set, it must point to an existing directory.
+fn validate_ort_lib_location(feature: &str) -> std::result::Result<(), String> {
+    match std::env::var_os("ORT_LIB_LOCATION") {
+        Some(path) => {
+            let path = std::path::Path::new(&path);
+            if !path.exists() {
+                return Err(format!(
+                    "ORT_LIB_LOCATION points to '{}' but that path does not exist.\n{}",
+                    path.display(),
+                    onnx_runtime_dynamic_load_hint(feature)
+                ));
+            }
+            if !path.is_dir() {
+                return Err(format!(
+                    "ORT_LIB_LOCATION must point to a directory, but '{}' is not a directory.\n{}",
+                    path.display(),
+                    onnx_runtime_dynamic_load_hint(feature)
+                ));
+            }
+            Ok(())
+        }
+        None => Ok(()),
+    }
 }
 
 // ============================================================================
@@ -211,8 +239,10 @@ pub static TEXT_EMBED_MODELS: &[TextEmbedModelInfo] = &[
     // Nomic: Versatile, good for various tasks (768d)
     TextEmbedModelInfo {
         name: "nomic-embed-text-v1.5",
-        model_url: "https://huggingface.co/nomic-ai/nomic-embed-text-v1.5/resolve/main/onnx/model.onnx",
-        tokenizer_url: "https://huggingface.co/nomic-ai/nomic-embed-text-v1.5/resolve/main/tokenizer.json",
+        model_url:
+            "https://huggingface.co/nomic-ai/nomic-embed-text-v1.5/resolve/main/onnx/model.onnx",
+        tokenizer_url:
+            "https://huggingface.co/nomic-ai/nomic-embed-text-v1.5/resolve/main/tokenizer.json",
         dims: 768,
         max_tokens: 512,
         is_default: false,
@@ -526,6 +556,12 @@ impl LocalTextEmbedder {
 
     /// Load ONNX session lazily
     fn load_session(&self) -> Result<()> {
+        validate_ort_lib_location("text embeddings").map_err(|reason| {
+            MemvidError::EmbeddingFailed {
+                reason: reason.into(),
+            }
+        })?;
+
         // Ensure ONNX Runtime is initialized (with stderr suppressed on macOS)
         ensure_ort_init();
 
@@ -1195,6 +1231,28 @@ mod tests {
         assert!(hint.contains("simulated failure"));
         assert!(hint.contains("ORT_LIB_LOCATION"));
         assert!(hint.contains("text embeddings"));
+    }
+
+    #[test]
+    fn test_ort_lib_location_file_path_fails_preflight() {
+        let file = tempfile::NamedTempFile::new().expect("create temp file");
+        unsafe {
+            std::env::set_var("ORT_LIB_LOCATION", file.path());
+        }
+
+        let config = TextEmbedConfig::default();
+        let embedder = LocalTextEmbedder::new(config).expect("create embedder");
+        let err = embedder
+            .load_session()
+            .expect_err("file path should fail preflight");
+
+        let reason = err.to_string();
+        assert!(reason.contains("must point to a directory"));
+        assert!(reason.contains("ORT_LIB_LOCATION"));
+
+        unsafe {
+            std::env::remove_var("ORT_LIB_LOCATION");
+        }
     }
 
     #[test]

@@ -42,6 +42,35 @@ fn format_onnx_runtime_error(feature: &str, message: impl core::fmt::Display) ->
     format!("{}\n{}", message, onnx_runtime_dynamic_load_hint(feature))
 }
 
+#[cfg(feature = "logic_mesh")]
+/// Validate `ORT_LIB_LOCATION` when configured.
+///
+/// Dynamic loading supports default native loader paths when this variable is unset.
+/// When set, it must point to an existing directory.
+fn validate_ort_lib_location(feature: &str) -> std::result::Result<(), String> {
+    match std::env::var_os("ORT_LIB_LOCATION") {
+        Some(path) => {
+            let path = Path::new(&path);
+            if !path.exists() {
+                return Err(format!(
+                    "ORT_LIB_LOCATION points to '{}' but that path does not exist.\n{}",
+                    path.display(),
+                    onnx_runtime_dynamic_load_hint(feature)
+                ));
+            }
+            if !path.is_dir() {
+                return Err(format!(
+                    "ORT_LIB_LOCATION must point to a directory, but '{}' is not a directory.\n{}",
+                    path.display(),
+                    onnx_runtime_dynamic_load_hint(feature)
+                ));
+            }
+            Ok(())
+        }
+        None => Ok(()),
+    }
+}
+
 // ============================================================================
 // Configuration Constants
 // ============================================================================
@@ -204,6 +233,12 @@ mod model_impl {
             tokenizer_path: impl AsRef<Path>,
             min_confidence: Option<f32>,
         ) -> Result<Self> {
+            validate_ort_lib_location("NER").map_err(|reason| {
+                MemvidError::NerModelNotAvailable {
+                    reason: reason.into(),
+                }
+            })?;
+
             let model_path = model_path.as_ref().to_path_buf();
             let tokenizer_path = tokenizer_path.as_ref();
 
