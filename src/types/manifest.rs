@@ -1,9 +1,9 @@
 //! Persistent manifest structures describing segments, indices, and TOC.
 
 use serde::{
-    Deserialize, Serialize,
     de::{self, SeqAccess, Visitor},
     ser::SerializeStruct,
+    Deserialize, Serialize,
 };
 
 use super::{common::FrameId, frame::Frame, ticket::TicketRef};

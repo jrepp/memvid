@@ -1,15 +1,15 @@
-use crate::Result;
 use crate::io::time_index::read_track as time_index_read;
 use crate::memvid::lifecycle::Memvid;
+use crate::Result;
 
-#[cfg(feature = "temporal_track")]
-use crate::MemvidError;
 #[cfg(feature = "temporal_track")]
 use crate::analysis::temporal::{
     TemporalContext, TemporalNormalizer, TemporalResolution, TemporalResolutionValue,
 };
 #[cfg(feature = "temporal_track")]
 use crate::types::{TemporalFilter, TemporalMention, TemporalMentionKind};
+#[cfg(feature = "temporal_track")]
+use crate::MemvidError;
 #[cfg(feature = "temporal_track")]
 use std::collections::{HashMap, HashSet};
 #[cfg(feature = "temporal_track")]

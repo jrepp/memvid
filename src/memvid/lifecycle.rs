@@ -15,7 +15,7 @@ use std::sync::{Arc, RwLock};
 
 use crate::constants::{MAGIC, SPEC_VERSION, WAL_OFFSET, WAL_SIZE_TINY};
 use crate::error::{MemvidError, Result};
-use crate::footer::{FooterSlice, find_last_valid_footer};
+use crate::footer::{find_last_valid_footer, FooterSlice};
 use crate::io::header::HeaderCodec;
 #[cfg(feature = "parallel_segments")]
 use crate::io::manifest_wal::ManifestWal;
@@ -31,9 +31,9 @@ use crate::types::{
     FrameStatus, Header, IndexManifests, LogicMesh, MemoriesTrack, PutManyOpts, SchemaRegistry,
     SegmentCatalog, SketchTrack, TicketRef, Tier, Toc, VectorCompression,
 };
-#[cfg(feature = "temporal_track")]
-use crate::{TemporalTrack, temporal_track_read};
 use crate::{lex::LexIndex, vec::VecIndex};
+#[cfg(feature = "temporal_track")]
+use crate::{temporal_track_read, TemporalTrack};
 use blake3::Hasher;
 use memmap2::Mmap;
 

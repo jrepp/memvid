@@ -9,9 +9,9 @@ use tempfile::TempDir;
 
 use crate::memvid::lifecycle::Memvid;
 use crate::types::{
-    AclContext, AclEnforcementMode, AdaptiveConfig, AdaptiveResult, AdaptiveStats,
-    EmbeddingQualityStats, Frame, FrameId, FrameStatus, SearchHit, TimelineEntry, TimelineQuery,
-    VecSegmentDescriptor, compute_embedding_quality, find_adaptive_cutoff,
+    compute_embedding_quality, find_adaptive_cutoff, AclContext, AclEnforcementMode,
+    AdaptiveConfig, AdaptiveResult, AdaptiveStats, EmbeddingQualityStats, Frame, FrameId,
+    FrameStatus, SearchHit, TimelineEntry, TimelineQuery, VecSegmentDescriptor,
 };
 use crate::{LexSearchHit, MemvidError, Result, VecSearchHit};
 

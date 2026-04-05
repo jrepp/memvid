@@ -45,12 +45,12 @@ pub use engine::{
 };
 pub use types::{
     ActionType, Checkpoint, ComparisonReport, ComparisonSummary, Divergence, DivergenceType,
-    ModelResult, REPLAY_SEGMENT_MAGIC, REPLAY_SEGMENT_VERSION, ReplayAction, ReplayManifest,
-    ReplayOptions, ReplayResult, ReplaySession, SessionSummary, StateSnapshot,
+    ModelResult, ReplayAction, ReplayManifest, ReplayOptions, ReplayResult, ReplaySession,
+    SessionSummary, StateSnapshot, REPLAY_SEGMENT_MAGIC, REPLAY_SEGMENT_VERSION,
 };
 
-use crate::MemvidError;
 use crate::error::Result;
+use crate::MemvidError;
 use uuid::Uuid;
 
 /// Configuration for replay recording
@@ -131,7 +131,7 @@ impl ActiveSession {
 
 /// Storage operations for replay segments
 pub mod storage {
-    use super::{MemvidError, REPLAY_SEGMENT_MAGIC, REPLAY_SEGMENT_VERSION, ReplaySession, Result};
+    use super::{MemvidError, ReplaySession, Result, REPLAY_SEGMENT_MAGIC, REPLAY_SEGMENT_VERSION};
     use bincode::config::{self, Config};
     use std::io::{Read, Write};
 

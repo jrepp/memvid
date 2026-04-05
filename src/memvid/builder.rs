@@ -15,8 +15,8 @@ use super::{
 };
 #[cfg(feature = "parallel_segments")]
 use crate::{
-    MemvidError, Result,
     types::{PutOptions, SegmentKind, SegmentSpan, SegmentStats, VecIndexManifest},
+    MemvidError, Result,
 };
 
 #[cfg(feature = "parallel_segments")]
@@ -320,7 +320,7 @@ impl Memvid {
 #[cfg(all(test, feature = "parallel_segments"))]
 mod tests {
     use super::*;
-    use crate::{MemvidError, memvid::lifecycle::Memvid, run_serial_test};
+    use crate::{memvid::lifecycle::Memvid, run_serial_test, MemvidError};
     use tempfile::tempdir;
 
     #[test]
