@@ -31,6 +31,9 @@ use crate::types::{
     FrameStatus, Header, IndexManifests, LogicMesh, MemoriesTrack, PutManyOpts, SchemaRegistry,
     SegmentCatalog, SketchTrack, TicketRef, Tier, Toc, VectorCompression,
 };
+
+#[cfg(feature = "lex")]
+use tantivy::Executor;
 use crate::{lex::LexIndex, vec::VecIndex};
 #[cfg(feature = "temporal_track")]
 use crate::{temporal_track_read, TemporalTrack};
@@ -105,9 +108,94 @@ pub struct Memvid {
 }
 
 /// Controls read-only open behaviour for `.mv2` memories.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Clone)]
 pub struct OpenReadOptions {
     pub allow_repair: bool,
+    /// Optional number of Tantivy search executor threads.
+    ///
+    /// When `None`, Tantivy's default single-thread executor is used.
+    /// When `Some(n)` and `n > 1`, Tantivy search uses a dedicated multithread executor
+    /// sized to `n` threads.
+    #[cfg(feature = "lex")]
+    pub tantivy_search_threads: Option<usize>,
+    /// Optional custom Tantivy search executor owned by the application lifecycle.
+    ///
+    /// When provided, this takes precedence over `tantivy_search_threads`.
+    #[cfg(feature = "lex")]
+    pub tantivy_search_executor: Option<Executor>,
+}
+
+impl Default for OpenReadOptions {
+    fn default() -> Self {
+        Self {
+            allow_repair: false,
+            #[cfg(feature = "lex")]
+            tantivy_search_threads: None,
+            #[cfg(feature = "lex")]
+            tantivy_search_executor: None,
+        }
+    }
+}
+
+impl std::fmt::Debug for OpenReadOptions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("OpenReadOptions")
+            .field("allow_repair", &self.allow_repair)
+            .field(
+                "tantivy_search_threads",
+                &{
+                    #[cfg(feature = "lex")]
+                    {
+                        self.tantivy_search_threads
+                    }
+                    #[cfg(not(feature = "lex"))]
+                    {
+                        Option::<usize>::None
+                    }
+                },
+            )
+            .field(
+                "tantivy_search_executor",
+                &{
+                    #[cfg(feature = "lex")]
+                    {
+                        self.tantivy_search_executor.as_ref().map(|_| "custom")
+                    }
+                    #[cfg(not(feature = "lex"))]
+                    {
+                        Option::<&'static str>::None
+                    }
+                },
+            )
+            .finish()
+    }
+}
+
+impl OpenReadOptions {
+    /// Set Tantivy search executor thread count.
+    ///
+    /// No-op when memvid is built without the `lex` feature.
+    #[must_use]
+    pub fn with_tantivy_search_threads(mut self, threads: Option<usize>) -> Self {
+        #[cfg(feature = "lex")]
+        {
+            self.tantivy_search_threads = threads.filter(|n| *n > 0);
+        }
+        self
+    }
+
+    /// Set a custom Tantivy search executor.
+    ///
+    /// This enables dependency injection of application-owned thread pools/schedulers.
+    /// No-op when memvid is built without the `lex` feature.
+    #[must_use]
+    pub fn with_tantivy_search_executor(mut self, executor: Option<Executor>) -> Self {
+        #[cfg(feature = "lex")]
+        {
+            self.tantivy_search_executor = executor;
+        }
+        self
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -223,7 +311,7 @@ impl Memvid {
         };
 
         #[cfg(feature = "lex")]
-        memvid.init_tantivy()?;
+        memvid.init_tantivy(None, None)?;
 
         #[cfg(feature = "parallel_segments")]
         memvid.load_manifest_segments(manifest_wal_entries);
@@ -413,7 +501,7 @@ impl Memvid {
         }
         #[cfg(feature = "lex")]
         {
-            memvid.init_tantivy()?;
+            memvid.init_tantivy(None, None)?;
         }
         memvid.vec_enabled =
             memvid.toc.indexes.vec.is_some() || !memvid.toc.segment_catalog.vec_segments.is_empty();
@@ -468,10 +556,10 @@ impl Memvid {
             return Self::open(path_ref);
         }
 
-        Self::open_read_only_snapshot(path_ref)
+        Self::open_read_only_snapshot(path_ref, options)
     }
 
-    fn open_read_only_snapshot(path_ref: &Path) -> Result<Self> {
+    fn open_read_only_snapshot(path_ref: &Path, options: OpenReadOptions) -> Result<Self> {
         let mut file = OpenOptions::new().read(true).write(true).open(path_ref)?;
         let TailSnapshot {
             toc,
@@ -545,7 +633,10 @@ impl Memvid {
             memvid.load_lex_index_from_manifest()?;
         }
         #[cfg(feature = "lex")]
-        memvid.init_tantivy()?;
+        memvid.init_tantivy(
+            options.tantivy_search_executor,
+            options.tantivy_search_threads,
+        )?;
 
         memvid.vec_enabled =
             memvid.toc.indexes.vec.is_some() || !memvid.toc.segment_catalog.vec_segments.is_empty();

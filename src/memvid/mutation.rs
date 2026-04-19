@@ -1040,7 +1040,7 @@ impl Memvid {
                     // duplicates. Only initialize and index if Tantivy wasn't present during put.
                     let tantivy_was_present = self.tantivy.is_some();
                     if self.tantivy.is_none() {
-                        self.init_tantivy()?;
+                        self.init_tantivy(None, None)?;
                     }
 
                     // Skip indexing if Tantivy was already present - frames were indexed during put
@@ -2130,7 +2130,7 @@ impl Memvid {
                         storage.clear();
                         storage.set_generation(0);
                     }
-                    self.init_tantivy()?;
+                    self.init_tantivy(None, None)?;
                     if let Some(mut engine) = self.tantivy.take() {
                         self.rebuild_tantivy_engine(&mut engine)?;
                         self.tantivy = Some(engine);
@@ -2193,7 +2193,7 @@ impl Memvid {
                         storage.clear();
                         storage.set_generation(0);
                     }
-                    self.init_tantivy()?;
+                    self.init_tantivy(None, None)?;
                     if let Some(mut engine) = self.tantivy.take() {
                         self.rebuild_tantivy_engine(&mut engine)?;
                         self.tantivy = Some(engine);

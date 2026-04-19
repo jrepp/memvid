@@ -8,7 +8,7 @@ use blake3::{hash, Hasher};
 use tantivy::collector::TopDocs;
 use tantivy::indexer::IndexWriter;
 use tantivy::schema::{Field, OwnedValue, Schema, TantivyDocument};
-use tantivy::{doc, Index, IndexReader, Term};
+use tantivy::{doc, Executor, Index, IndexReader, ReloadPolicy, Term};
 use tempfile::TempDir;
 
 /// Tantivy-backed search index used when the `lex` feature is enabled.
@@ -62,19 +62,47 @@ impl TantivyEngine {
             }
         })?;
         initialise_tokenizer(&index);
-        Self::from_parts(dir, index, schema)
+        Self::from_parts(dir, index, schema, true)
     }
 
-    pub fn open_from_dir(dir: TempDir) -> Result<Self> {
-        let index = Index::open_in_dir(dir.path()).map_err(|err| MemvidError::Tantivy {
+    pub fn create_read_only() -> Result<Self> {
+        let dir = TempDir::new().map_err(|err| MemvidError::Tantivy {
+            reason: format!("failed to allocate Tantivy work directory: {err}"),
+        })?;
+        let schema = build_schema();
+        let index = Index::create_in_dir(dir.path(), schema.clone()).map_err(|err| {
+            MemvidError::Tantivy {
+                reason: err.to_string(),
+            }
+        })?;
+        initialise_tokenizer(&index);
+        Self::from_parts(dir, index, schema, false)
+    }
+
+    pub fn open_from_dir_with_search_executor(
+        dir: TempDir,
+        search_executor: Option<Executor>,
+        search_threads: Option<usize>,
+        writable: bool,
+    ) -> Result<Self> {
+        let mut index = Index::open_in_dir(dir.path()).map_err(|err| MemvidError::Tantivy {
             reason: err.to_string(),
         })?;
         initialise_tokenizer(&index);
+        if let Some(executor) = search_executor {
+            index.set_executor(executor);
+        } else if let Some(threads) = search_threads.filter(|threads| *threads > 1) {
+            index
+                .set_multithread_executor(threads)
+                .map_err(|err| MemvidError::Tantivy {
+                    reason: err.to_string(),
+                })?;
+        }
         let schema = index.schema();
-        Self::from_parts(dir, index, schema)
+        Self::from_parts(dir, index, schema, writable)
     }
 
-    fn from_parts(dir: TempDir, index: Index, schema: Schema) -> Result<Self> {
+    fn from_parts(dir: TempDir, index: Index, schema: Schema, writable: bool) -> Result<Self> {
         let content = schema
             .get_field("content")
             .map_err(|err| MemvidError::Tantivy {
@@ -111,14 +139,24 @@ impl TantivyEngine {
                 reason: err.to_string(),
             })?;
 
-        let writer = index
-            .writer(50_000_000)
+        let writer = if writable {
+            Some(
+                index
+                    .writer(50_000_000)
+                    .map_err(|err| MemvidError::Tantivy {
+                        reason: err.to_string(),
+                    })?,
+            )
+        } else {
+            None
+        };
+        let reader = index
+            .reader_builder()
+            .reload_policy(ReloadPolicy::Manual)
+            .try_into()
             .map_err(|err| MemvidError::Tantivy {
                 reason: err.to_string(),
             })?;
-        let reader = index.reader().map_err(|err| MemvidError::Tantivy {
-            reason: err.to_string(),
-        })?;
 
         Ok(Self {
             work_dir: dir,
@@ -131,7 +169,7 @@ impl TantivyEngine {
             timestamp,
             uri,
             frame_id,
-            index_writer: Some(writer),
+            index_writer: writer,
             reader,
             tokenizer: Some("memvid_default".to_string()),
         })
@@ -404,4 +442,24 @@ impl TantivyEngine {
     pub fn num_docs(&self) -> u64 {
         self.reader.searcher().num_docs()
     }
+
+    pub fn set_search_threads(&mut self, threads: usize) -> Result<()> {
+        self.index
+            .set_multithread_executor(threads)
+            .map_err(|err| MemvidError::Tantivy {
+                reason: err.to_string(),
+            })
+    }
+
+    pub fn set_search_executor(&mut self, executor: Executor) {
+        self.index.set_executor(executor);
+    }
+
+    pub fn ensure_writer(&mut self) -> Result<()> {
+        if self.index_writer.is_none() {
+            self.index_writer = Some(self.create_writer()?);
+        }
+        Ok(())
+    }
+
 }

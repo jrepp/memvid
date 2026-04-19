@@ -1,6 +1,8 @@
 #[cfg(feature = "lex")]
 use crate::search::{EmbeddedLexSegment, TantivyEngine};
 #[cfg(feature = "lex")]
+use tantivy::Executor;
+#[cfg(feature = "lex")]
 use std::fs::{self, File};
 #[cfg(feature = "lex")]
 use std::io::{Read, Seek, SeekFrom, Write};
@@ -30,7 +32,7 @@ impl Memvid {
         self.toc.segment_catalog.lex_enabled = true;
         self.dirty = true;
         #[cfg(feature = "lex")]
-        self.init_tantivy()?;
+        self.init_tantivy(None, None)?;
 
         // Create empty lex manifest so the flag persists across open/close
         if self.toc.indexes.lex.is_none() {
@@ -808,7 +810,11 @@ impl Memvid {
         Ok(dir)
     }
 
-    pub(crate) fn init_tantivy(&mut self) -> Result<()> {
+    pub(crate) fn init_tantivy(
+        &mut self,
+        search_executor: Option<Executor>,
+        search_threads: Option<usize>,
+    ) -> Result<()> {
         if !self.lex_enabled {
             self.tantivy = None;
             self.tantivy_dirty = false;
@@ -846,7 +852,14 @@ impl Memvid {
             Some(segments) => {
                 match self
                     .materialize_tantivy_segments(&segments)
-                    .and_then(TantivyEngine::open_from_dir)
+                    .and_then(|dir| {
+                        TantivyEngine::open_from_dir_with_search_executor(
+                            dir,
+                            search_executor.clone(),
+                            search_threads,
+                            !self.read_only,
+                        )
+                    })
                 {
                     Ok(engine) => engine,
                     Err(err) => {
@@ -854,11 +867,27 @@ impl Memvid {
                             "failed to open embedded Tantivy index: {}, rebuilding",
                             err
                         );
-                        TantivyEngine::create()?
+                        if self.read_only {
+                            TantivyEngine::create_read_only()?
+                        } else {
+                            TantivyEngine::create()?
+                        }
                     }
                 }
             }
-            None => TantivyEngine::create()?,
+            None => {
+                let mut engine = if self.read_only {
+                    TantivyEngine::create_read_only()?
+                } else {
+                    TantivyEngine::create()?
+                };
+                if let Some(executor) = search_executor {
+                    engine.set_search_executor(executor);
+                } else if let Some(threads) = search_threads.filter(|threads| *threads > 1) {
+                    engine.set_search_threads(threads)?;
+                }
+                engine
+            }
         };
 
         // Use consolidated helper for expected doc count
@@ -880,6 +909,15 @@ impl Memvid {
         };
 
         if needs_rebuild {
+            if self.read_only {
+                tracing::warn!(
+                    expected_docs = ?expected_docs,
+                    actual_docs,
+                    "tantivy doc count mismatch in read-only mode; skipping rebuild"
+                );
+            } else {
+                engine.ensure_writer()?;
+            }
             if let Some(expected) = expected_docs {
                 if actual_docs != 0 || expected != 0 {
                     tracing::debug!(
@@ -889,7 +927,9 @@ impl Memvid {
                     );
                 }
             }
-            rebuilt = self.rebuild_tantivy_engine(&mut engine)?;
+            if !self.read_only {
+                rebuilt = self.rebuild_tantivy_engine(&mut engine)?;
+            }
         }
 
         self.tantivy_dirty = rebuilt;
