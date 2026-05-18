@@ -521,14 +521,18 @@ mod tests {
         assert!(ValueType::Boolean.matches("true"));
         assert!(ValueType::Boolean.matches("false"));
         assert!(!ValueType::Boolean.matches("maybe"));
-        assert!(ValueType::Enum {
-            values: vec!["a".to_string(), "b".to_string()]
-        }
-        .matches("A"));
-        assert!(!ValueType::Enum {
-            values: vec!["a".to_string(), "b".to_string()]
-        }
-        .matches("c"));
+        assert!(
+            ValueType::Enum {
+                values: vec!["a".to_string(), "b".to_string()]
+            }
+            .matches("A")
+        );
+        assert!(
+            !ValueType::Enum {
+                values: vec!["a".to_string(), "b".to_string()]
+            }
+            .matches("c")
+        );
     }
 
     #[test]
@@ -553,12 +557,16 @@ mod tests {
         assert!(registry.contains("age"));
 
         // Validate against built-in
-        assert!(registry
-            .validate("age", "25", Some(EntityKind::Person))
-            .is_ok());
-        assert!(registry
-            .validate("age", "abc", Some(EntityKind::Person))
-            .is_err());
+        assert!(
+            registry
+                .validate("age", "25", Some(EntityKind::Person))
+                .is_ok()
+        );
+        assert!(
+            registry
+                .validate("age", "abc", Some(EntityKind::Person))
+                .is_err()
+        );
     }
 
     #[test]

@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use crate::{error::MemvidError, text::truncate_at_grapheme_boundary, Result};
+use crate::{Result, error::MemvidError, text::truncate_at_grapheme_boundary};
 // Use SymSpell-based cleanup when feature is enabled, otherwise fall back to heuristic
 #[cfg(feature = "symspell_cleanup")]
 use crate::symspell_cleanup::fix_pdf_text as fix_pdf_spacing;
@@ -11,7 +11,7 @@ use crate::text::fix_pdf_spacing;
 #[cfg(feature = "extractous")]
 use log::LevelFilter;
 use lopdf::Document as LopdfDocument;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 #[cfg(feature = "extractous")]
 use extractous::Extractor;

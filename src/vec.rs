@@ -1,7 +1,7 @@
 use blake3::hash;
 use serde::{Deserialize, Serialize};
 
-use crate::{types::FrameId, MemvidError, Result};
+use crate::{MemvidError, Result, types::FrameId};
 
 #[cfg(any(feature = "vec", feature = "hnsw_bench"))]
 use hnsw::{Hnsw, Params, Searcher};

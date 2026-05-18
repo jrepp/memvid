@@ -20,7 +20,7 @@ use std::{
 use bincode::serde::{decode_from_slice, encode_to_vec};
 use blake3::hash;
 
-use crate::{error::MemvidError, types::IndexSegmentRef, Result};
+use crate::{Result, error::MemvidError, types::IndexSegmentRef};
 
 const FILE_MAGIC: [u8; 8] = *b"MVSGWAL1";
 const FILE_VERSION: u32 = 1;

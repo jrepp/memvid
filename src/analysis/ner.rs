@@ -201,7 +201,7 @@ pub use model_impl::*;
 #[cfg(feature = "logic_mesh")]
 mod model_impl {
     use super::*;
-    use ort::session::{builder::GraphOptimizationLevel, Session};
+    use ort::session::{Session, builder::GraphOptimizationLevel};
     use ort::value::Tensor;
     use std::sync::Mutex;
     use tokenizers::{

@@ -215,9 +215,11 @@ mod tests {
         let mut cursor = Cursor::new(encoded.to_vec());
         HeaderCodec::read(&mut cursor).expect("read header with legacy metadata");
         let sanitized = cursor.into_inner();
-        assert!(sanitized[LEGACY_LOCK_REGION_START..LEGACY_LOCK_REGION_END]
-            .iter()
-            .all(|byte| *byte == 0));
+        assert!(
+            sanitized[LEGACY_LOCK_REGION_START..LEGACY_LOCK_REGION_END]
+                .iter()
+                .all(|byte| *byte == 0)
+        );
     }
 
     #[test]

@@ -3,8 +3,8 @@
 use std::{collections::BTreeMap, fmt, marker::PhantomData, num::NonZeroU64};
 
 use serde::{
-    de::{self, MapAccess, SeqAccess, Visitor},
     Deserialize, Serialize,
+    de::{self, MapAccess, SeqAccess, Visitor},
 };
 
 #[cfg(feature = "temporal_track")]

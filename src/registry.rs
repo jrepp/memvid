@@ -10,8 +10,8 @@ use blake3::Hasher;
 use fs_err::{self as fs, File, OpenOptions};
 use same_file::Handle;
 use serde::{Deserialize, Serialize};
-use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
+use time::format_description::well_known::Rfc3339;
 
 use crate::error::{LockOwnerHint, Result};
 

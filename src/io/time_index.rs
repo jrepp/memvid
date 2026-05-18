@@ -164,9 +164,11 @@ mod tests {
         assert_eq!(entries[0].timestamp, 10); // sorted in place
         let read_entries = read_track(&mut file, offset, length).expect("read track");
         assert_eq!(read_entries.len(), 3);
-        assert!(read_entries
-            .windows(2)
-            .all(|w| w[0].timestamp <= w[1].timestamp));
+        assert!(
+            read_entries
+                .windows(2)
+                .all(|w| w[0].timestamp <= w[1].timestamp)
+        );
 
         let expected_checksum = calculate_checksum(&read_entries);
         assert_eq!(checksum, expected_checksum);

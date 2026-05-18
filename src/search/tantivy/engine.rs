@@ -4,11 +4,11 @@ use super::util::to_search_value;
 use crate::search::parser::ParsedQuery;
 use crate::types::{Frame, FrameId};
 use crate::{MemvidError, Result};
-use blake3::{hash, Hasher};
+use blake3::{Hasher, hash};
 use tantivy::collector::TopDocs;
 use tantivy::indexer::IndexWriter;
 use tantivy::schema::{Field, OwnedValue, Schema, TantivyDocument};
-use tantivy::{doc, Executor, Index, IndexReader, ReloadPolicy, Term};
+use tantivy::{Executor, Index, IndexReader, ReloadPolicy, Term, doc};
 use tempfile::TempDir;
 
 /// Tantivy-backed search index used when the `lex` feature is enabled.
@@ -461,5 +461,4 @@ impl TantivyEngine {
         }
         Ok(())
     }
-
 }

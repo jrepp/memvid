@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::{run_serial_test, Memvid, PutOptions, SearchRequest};
+    use crate::{Memvid, PutOptions, SearchRequest, run_serial_test};
     use tempfile::NamedTempFile;
 
     #[test]

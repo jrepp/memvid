@@ -26,7 +26,7 @@ mod time_filter;
 
 // Re-export text indexability helpers for use in validation
 pub use api::{
-    is_frame_text_indexable, is_text_indexable_mime, max_index_payload, DEFAULT_MAX_INDEX_PAYLOAD,
+    DEFAULT_MAX_INDEX_PAYLOAD, is_frame_text_indexable, is_text_indexable_mime, max_index_payload,
 };
 
 #[cfg(feature = "lex")]

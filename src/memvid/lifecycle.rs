@@ -15,7 +15,7 @@ use std::sync::{Arc, RwLock};
 
 use crate::constants::{MAGIC, SPEC_VERSION, WAL_OFFSET, WAL_SIZE_TINY};
 use crate::error::{MemvidError, Result};
-use crate::footer::{find_last_valid_footer, FooterSlice};
+use crate::footer::{FooterSlice, find_last_valid_footer};
 use crate::io::header::HeaderCodec;
 #[cfg(feature = "parallel_segments")]
 use crate::io::manifest_wal::ManifestWal;
@@ -32,13 +32,13 @@ use crate::types::{
     SegmentCatalog, SketchTrack, TicketRef, Tier, Toc, VectorCompression,
 };
 
-#[cfg(feature = "lex")]
-use tantivy::Executor;
-use crate::{lex::LexIndex, vec::VecIndex};
 #[cfg(feature = "temporal_track")]
-use crate::{temporal_track_read, TemporalTrack};
+use crate::{TemporalTrack, temporal_track_read};
+use crate::{lex::LexIndex, vec::VecIndex};
 use blake3::Hasher;
 use memmap2::Mmap;
+#[cfg(feature = "lex")]
+use tantivy::Executor;
 
 const DEFAULT_LOCK_TIMEOUT_MS: u64 = 250;
 const DEFAULT_HEARTBEAT_MS: u64 = 2_000;
@@ -141,32 +141,26 @@ impl std::fmt::Debug for OpenReadOptions {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("OpenReadOptions")
             .field("allow_repair", &self.allow_repair)
-            .field(
-                "tantivy_search_threads",
-                &{
-                    #[cfg(feature = "lex")]
-                    {
-                        self.tantivy_search_threads
-                    }
-                    #[cfg(not(feature = "lex"))]
-                    {
-                        Option::<usize>::None
-                    }
-                },
-            )
-            .field(
-                "tantivy_search_executor",
-                &{
-                    #[cfg(feature = "lex")]
-                    {
-                        self.tantivy_search_executor.as_ref().map(|_| "custom")
-                    }
-                    #[cfg(not(feature = "lex"))]
-                    {
-                        Option::<&'static str>::None
-                    }
-                },
-            )
+            .field("tantivy_search_threads", &{
+                #[cfg(feature = "lex")]
+                {
+                    self.tantivy_search_threads
+                }
+                #[cfg(not(feature = "lex"))]
+                {
+                    Option::<usize>::None
+                }
+            })
+            .field("tantivy_search_executor", &{
+                #[cfg(feature = "lex")]
+                {
+                    self.tantivy_search_executor.as_ref().map(|_| "custom")
+                }
+                #[cfg(not(feature = "lex"))]
+                {
+                    Option::<&'static str>::None
+                }
+            })
             .finish()
     }
 }

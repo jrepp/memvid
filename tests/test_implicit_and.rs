@@ -112,7 +112,11 @@ fn test_explicit_operators_still_work() -> memvid_core::Result<()> {
         acl_enforcement_mode: memvid_core::types::AclEnforcementMode::Audit,
     })?;
 
-    assert_eq!(results.hits.len(), 1, "Explicit AND should match only Doc 3");
+    assert_eq!(
+        results.hits.len(),
+        1,
+        "Explicit AND should match only Doc 3"
+    );
 
     // Explicit OR — all docs match
     let results = mem.search(SearchRequest {
@@ -131,7 +135,10 @@ fn test_explicit_operators_still_work() -> memvid_core::Result<()> {
         acl_enforcement_mode: memvid_core::types::AclEnforcementMode::Audit,
     })?;
 
-    assert!(results.hits.len() >= 2, "Explicit OR should match multiple docs");
+    assert!(
+        results.hits.len() >= 2,
+        "Explicit OR should match multiple docs"
+    );
 
     std::fs::remove_file(&temp_file)?;
     Ok(())

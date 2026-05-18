@@ -190,9 +190,9 @@ pub use reader::{
 pub use signature::{
     parse_ed25519_public_key_base64, verify_model_manifest, verify_ticket_signature,
 };
-pub use text::{NormalizedText, normalize_text, truncate_at_grapheme_boundary};
 #[cfg(feature = "lex")]
 pub use tantivy;
+pub use text::{NormalizedText, normalize_text, truncate_at_grapheme_boundary};
 pub use types::{
     ACL_POLICY_VERSION_KEY, ACL_READ_GROUPS_KEY, ACL_READ_PRINCIPALS_KEY, ACL_READ_ROLES_KEY,
     ACL_RESOURCE_ID_KEY, ACL_TENANT_ID_KEY, ACL_VISIBILITY_KEY, AclContext, AclEnforcementMode,

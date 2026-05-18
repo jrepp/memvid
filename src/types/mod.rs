@@ -51,8 +51,8 @@ pub use manifest::{
 };
 // Logic-Mesh types for entity-relationship graph traversal
 pub use logic_mesh::{
-    EdgeDirection, EntityKind, FollowResult, LinkType, LogicMesh, LogicMeshStats, MeshEdge,
-    MeshNode, LOGIC_MESH_MAGIC, LOGIC_MESH_VERSION,
+    EdgeDirection, EntityKind, FollowResult, LOGIC_MESH_MAGIC, LOGIC_MESH_VERSION, LinkType,
+    LogicMesh, LogicMeshStats, MeshEdge, MeshNode,
 };
 pub use metadata::{
     AudioSegmentMetadata, DocAudioMetadata, DocExifMetadata, DocGpsMetadata, DocMetadata,
@@ -67,22 +67,22 @@ pub use search::{
 pub use search::{SearchHitTemporal, SearchHitTemporalAnchor, SearchHitTemporalMention};
 #[cfg(feature = "temporal_track")]
 pub use temporal::{
-    TemporalAnchor, TemporalCapabilities, TemporalFilter, TemporalMention, TemporalMentionFlags,
-    TemporalMentionKind, TemporalTrack, TEMPORAL_TRACK_FLAG_HAS_ANCHORS,
-    TEMPORAL_TRACK_FLAG_HAS_MENTIONS,
+    TEMPORAL_TRACK_FLAG_HAS_ANCHORS, TEMPORAL_TRACK_FLAG_HAS_MENTIONS, TemporalAnchor,
+    TemporalCapabilities, TemporalFilter, TemporalMention, TemporalMentionFlags,
+    TemporalMentionKind, TemporalTrack,
 };
 pub use ticket::{SignedTicket, Ticket, TicketRef};
 pub use verification::{
-    DoctorActionDetail, DoctorActionKind, DoctorActionPlan, DoctorActionReport, DoctorActionStatus,
-    DoctorFinding, DoctorFindingCode, DoctorMetrics, DoctorOptions, DoctorPhaseDuration,
-    DoctorPhaseKind, DoctorPhasePlan, DoctorPhaseReport, DoctorPhaseStatus, DoctorPlan,
-    DoctorReport, DoctorSeverity, DoctorStatus, VerificationCheck, VerificationReport,
-    VerificationStatus, DOCTOR_PLAN_VERSION,
+    DOCTOR_PLAN_VERSION, DoctorActionDetail, DoctorActionKind, DoctorActionPlan,
+    DoctorActionReport, DoctorActionStatus, DoctorFinding, DoctorFindingCode, DoctorMetrics,
+    DoctorOptions, DoctorPhaseDuration, DoctorPhaseKind, DoctorPhasePlan, DoctorPhaseReport,
+    DoctorPhaseStatus, DoctorPlan, DoctorReport, DoctorSeverity, DoctorStatus, VerificationCheck,
+    VerificationReport, VerificationStatus,
 };
 // Memory card types for structured memory extraction
 pub use memories_track::{
-    EngineStamp, EnrichmentManifest, EnrichmentRecord, MemoriesStats, MemoriesTrack, SlotIndex,
-    MEMORIES_TRACK_MAGIC, MEMORIES_TRACK_VERSION,
+    EngineStamp, EnrichmentManifest, EnrichmentRecord, MEMORIES_TRACK_MAGIC,
+    MEMORIES_TRACK_VERSION, MemoriesStats, MemoriesTrack, SlotIndex,
 };
 pub use memory_card::{
     MemoryCard, MemoryCardBuilder, MemoryCardBuilderError, MemoryCardId, MemoryKind, Polarity,
@@ -106,13 +106,12 @@ pub use structure::{
 };
 // Adaptive retrieval types for dynamic result set sizing
 pub use acl::{
-    AclContext, AclEnforcementMode, ACL_POLICY_VERSION_KEY, ACL_READ_GROUPS_KEY,
-    ACL_READ_PRINCIPALS_KEY, ACL_READ_ROLES_KEY, ACL_RESOURCE_ID_KEY, ACL_TENANT_ID_KEY,
-    ACL_VISIBILITY_KEY,
+    ACL_POLICY_VERSION_KEY, ACL_READ_GROUPS_KEY, ACL_READ_PRINCIPALS_KEY, ACL_READ_ROLES_KEY,
+    ACL_RESOURCE_ID_KEY, ACL_TENANT_ID_KEY, ACL_VISIBILITY_KEY, AclContext, AclEnforcementMode,
 };
 pub use adaptive::{
-    compute_embedding_quality, find_adaptive_cutoff, normalize_scores, AdaptiveConfig,
-    AdaptiveResult, AdaptiveStats, CutoffStrategy, EmbeddingQualityStats,
+    AdaptiveConfig, AdaptiveResult, AdaptiveStats, CutoffStrategy, EmbeddingQualityStats,
+    compute_embedding_quality, find_adaptive_cutoff, normalize_scores,
 };
 // Graph-aware query types for hybrid retrieval
 pub use graph_query::{
@@ -124,9 +123,9 @@ pub use schema::{
 };
 // Sketch track types for fast candidate generation
 pub use sketch_track::{
+    DEFAULT_HAMMING_THRESHOLD, QuerySketch, SKETCH_TRACK_MAGIC, SKETCH_TRACK_VERSION, SketchEntry,
+    SketchFlags, SketchTrack, SketchTrackHeader, SketchTrackStats, SketchVariant,
     build_term_filter, compute_simhash, compute_token_weights, generate_sketch, hash_token,
     hash_token_u32, read_sketch_track, term_filter_maybe_contains, tokenize_for_sketch,
-    write_sketch_track, QuerySketch, SketchEntry, SketchFlags, SketchTrack, SketchTrackHeader,
-    SketchTrackStats, SketchVariant, DEFAULT_HAMMING_THRESHOLD, SKETCH_TRACK_MAGIC,
-    SKETCH_TRACK_VERSION,
+    write_sketch_track,
 };

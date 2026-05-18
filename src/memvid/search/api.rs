@@ -1,19 +1,19 @@
 #[cfg(feature = "lex")]
 use crate::search::{EmbeddedLexSegment, TantivyEngine};
 #[cfg(feature = "lex")]
-use tantivy::Executor;
-#[cfg(feature = "lex")]
 use std::fs::{self, File};
 #[cfg(feature = "lex")]
 use std::io::{Read, Seek, SeekFrom, Write};
+#[cfg(feature = "lex")]
+use tantivy::Executor;
 #[cfg(feature = "lex")]
 use tempfile::TempDir;
 
 use crate::memvid::lifecycle::Memvid;
 use crate::types::{
-    compute_embedding_quality, find_adaptive_cutoff, AclContext, AclEnforcementMode,
-    AdaptiveConfig, AdaptiveResult, AdaptiveStats, EmbeddingQualityStats, Frame, FrameId,
-    FrameStatus, SearchHit, TimelineEntry, TimelineQuery, VecSegmentDescriptor,
+    AclContext, AclEnforcementMode, AdaptiveConfig, AdaptiveResult, AdaptiveStats,
+    EmbeddingQualityStats, Frame, FrameId, FrameStatus, SearchHit, TimelineEntry, TimelineQuery,
+    VecSegmentDescriptor, compute_embedding_quality, find_adaptive_cutoff,
 };
 use crate::{LexSearchHit, MemvidError, Result, VecSearchHit};
 
@@ -859,8 +859,7 @@ impl Memvid {
                             search_threads,
                             !self.read_only,
                         )
-                    })
-                {
+                    }) {
                     Ok(engine) => engine,
                     Err(err) => {
                         tracing::debug!(

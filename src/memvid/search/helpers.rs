@@ -1,5 +1,7 @@
 // Safe unwrap: guaranteed non-empty vector operations.
 #![allow(clippy::unwrap_used)]
+use crate::MemvidError;
+use crate::Result;
 use crate::memvid::lifecycle::Memvid;
 #[cfg(not(feature = "temporal_track"))]
 #[allow(unused_imports)]
@@ -9,14 +11,12 @@ use crate::types::{
     FrameId, SearchHitTemporal, SearchHitTemporalAnchor, SearchHitTemporalMention, TemporalMention,
 };
 use crate::types::{SearchEngineKind, SearchHit, SearchHitMetadata, SearchParams, SearchResponse};
-use crate::MemvidError;
-use crate::Result;
 #[cfg(feature = "temporal_track")]
 use std::collections::HashMap;
 #[cfg(feature = "temporal_track")]
 use std::collections::HashSet;
 use std::collections::{BTreeMap, HashSet as StdHashSet};
-use time::{format_description::well_known::Rfc3339, OffsetDateTime};
+use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 pub(super) fn empty_search_response(
     query: String,
