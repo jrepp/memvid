@@ -151,6 +151,12 @@ impl PutOptionsBuilder {
     }
 
     #[must_use]
+    pub fn extra_metadata(mut self, extra_metadata: BTreeMap<String, String>) -> Self {
+        self.inner.extra_metadata.extend(extra_metadata);
+        self
+    }
+
+    #[must_use]
     pub fn metadata(mut self, metadata: DocMetadata) -> Self {
         self.inner.metadata = Some(metadata);
         self
